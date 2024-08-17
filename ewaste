@@ -1,0 +1,115 @@
+import datetime
+import json
+import os
+
+# File paths for data persistence
+DATA_FILE = 'ewaste_data.json'
+
+class ElectronicItem:
+    def __init__(self, name, model, purchase_date, end_of_life_date):
+        self.name = name
+        self.model = model
+        self.purchase_date = datetime.datetime.strptime(purchase_date, '%Y-%m-%d')
+        self.end_of_life_date = datetime.datetime.strptime(end_of_life_date, '%Y-%m-%d')
+        self.status = 'active'
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'model': self.model,
+            'purchase_date': self.purchase_date.strftime('%Y-%m-%d'),
+            'end_of_life_date': self.end_of_life_date.strftime('%Y-%m-%d'),
+            'status': self.status
+        }
+
+class User:
+    def __init__(self, username):
+        self.username = username
+        self.items = []
+
+    def add_item(self, item):
+        self.items.append(item)
+
+    def check_items(self):
+        today = datetime.datetime.now()
+        return [item for item in self.items if item.end_of_life_date <= today and item.status == 'active']
+
+    def to_dict(self):
+        return {
+            'username': self.username,
+            'items': [item.to_dict() for item in self.items]
+        }
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as file:
+            data = json.load(file)
+        return data
+    return {}
+
+def save_data(data):
+    with open(DATA_FILE, 'w') as file:
+        json.dump(data, file, indent=4)
+
+def add_item(user):
+    print("Enter the electronic item's details:")
+    name = input("Name: ")
+    model = input("Model: ")
+    purchase_date = input("Purchase Date (YYYY-MM-DD): ")
+    end_of_life_date = input("End of Life Date (YYYY-MM-DD): ")
+    
+    try:
+        item = ElectronicItem(name, model, purchase_date, end_of_life_date)
+        user.add_item(item)
+        print("Item added successfully!")
+    except ValueError:
+        print("Invalid date format. Please use YYYY-MM-DD.")
+
+def check_items(user):
+    items = user.check_items()
+    if items:
+        print("\nItems nearing end of life:")
+        for item in items:
+            print(f"Name: {item.name}, Model: {item.model}, End of Life Date: {item.end_of_life_date.strftime('%Y-%m-%d')}")
+    else:
+        print("No items nearing end of life.")
+
+def display_recycling_options():
+    print("\nRecycling Options:")
+    print("1. Contact local recycling centers.")
+    print("2. Check with electronic retailers for recycling programs.")
+    print("3. Follow government e-waste recycling guidelines.")
+
+def main():
+    data = load_data()
+    username = input("Enter your username: ")
+    
+    if username not in data:
+        data[username] = User(username)
+    
+    user = data[username]
+    
+    while True:
+        print("\nE-Waste Monitoring System")
+        print("1. Add Electronic Item")
+        print("2. Check Items")
+        print("3. Display Recycling Options")
+        print("4. Exit")
+        
+        choice = input("Choose an option: ")
+        
+        if choice == '1':
+            add_item(user)
+        elif choice == '2':
+            check_items(user)
+        elif choice == '3':
+            display_recycling_options()
+        elif choice == '4':
+            save_data({u.username: u.to_dict() for u in data.values()})
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
